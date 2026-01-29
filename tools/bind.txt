@@ -1,0 +1,5 @@
+l: attacked ip iface
+p: port
+b: badchars
+python3 shellcoder-v2.py --bind -l <ip> -p 443 -b 00 
+
