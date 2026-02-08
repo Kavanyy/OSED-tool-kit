@@ -15,7 +15,7 @@ The primary compilation engine for complex Windows payloads.
 * **Credits**: This tool is based on the original work and design by **epi**, specifically adapted and expanded for OSED-level research and Windows x86 exploitation.
 * **Automated XOR Encoder**: Iteratively searches for a clean 4-byte XOR key to bypass filters when static payloads contain bad characters, automatically prepending the necessary decoder stub.
 * **WinAPI Hashing**: Utilizes ror-13 hashing for function resolution (e.g., LoadLibraryA, CreateProcessA, WSAStartup) to keep payloads compact and robust against different Windows versions.
-* **Modular Templates**: Pre-built logic for Reverse Shells (Standard/Optimized), Bind Shells, MSI Exec stagers, and URL Download & Execute payloads.
+* **Modular Templates**: Pre-built logic for Reverse Shells (Standard), MSI Exec stagers, other payloads are not supported and are left for the user to code.
 
 ### 3. Egghunter Generator (`egghunter.py`)
 A modular tool to generate optimized egghunter payloads for Windows x86.
